@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" >
+  <link rel="dns-prefetch" href="http://yoursite.com">
+  <title>Hello World | Hexo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="Welcome to Hexo! This is your very first post. Check documentation for more info. If you get any problems when using Hexo, you can find the answer in troubleshooting or you can ask me on GitHub. Quick">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Hello World">
+<meta property="og:url" content="http://yoursite.com/2017/09/18/hello-world/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="Welcome to Hexo! This is your very first post. Check documentation for more info. If you get any problems when using Hexo, you can find the answer in troubleshooting or you can ask me on GitHub. Quick">
+<meta property="og:updated_time" content="2017-09-18T03:25:15.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Hello World">
+<meta name="twitter:description" content="Welcome to Hexo! This is your very first post. Check documentation for more info. If you get any problems when using Hexo, you can find the answer in troubleshooting or you can ask me on GitHub. Quick">
+  
+    <link rel="alternative" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <link rel="stylesheet" type="text/css" href="/./main.507b3a.css">
+  <style type="text/css">
+  
+    #container.show {
+      background: linear-gradient(200deg,#a0cfe4,#e8c37e);
+    }
+  </style>
+  
+
+  
+
+</head>
+
+<body>
+    <p>静态库
+
+百度地图,JPush,友盟...源代码不公开
+
+.a + .h
+
+1.静态库的目的,就是把有共性的代码抽取出来,提前编译成二进制的库,供其他人调用.
+
+开发的项目结构
+
+1>静态库CZTools共性的代码
+2>单视图应用+ libCZTools.a
+
+编译顺序
+1> CZTools => libCZTools.a
+2> APP 会引用 libCZTools.a => 调用其中的方法
+要引入静态库文件
+ 问题: 静态库中会包含图像,譬如Logo
+
+目标:
+
+图片在静态库中,App调用某一个方法,就可以获取到这张图片
+
+注意: 在静态库中,默认是没有UIKit.h,需要自己引入
+
+因为:苹果考虑静态库应该解决更多的是复杂的算法问题
+
+目标:
+
+自定义视图 -> 关于我们
+
+嵌入式
+
+静态库编译结果,一共有以下四种类型
+Debug-iphoneos(真机 - CPU架构是ARM7,ARM7S, ARM 64)
+Debug-iphonesimulator(模拟器 - CPU架构是i386)
+Release-iphoneos(真机)
+Release-iphonesimulator(模拟器)
+报错 
+Undefined symbols for architecture i386:
+没有为i386架构定义的符号
+没有导入模拟器上可用的静态库
+
+Undefined symbols for architecture i386 : 未定义的符号在i386架构
+现在的静态库在i386架构上面是不可以使用
+
+模拟器:
+iPhone4s-->iPhone5 : i386
+iPhone5s-->iPhone6plus : x86_64
+
+真机:
+iPhone3gs-->iPhone4s : armv7
+iPhone5-->iPhone5c : armv7s
+iPhone5s-->iPhone6plus : arm64
+
+通过下列命令查看静态库支持哪些架构:lipo -info 静态库.a
+通过下列命令可以将静态库进行合并:
+lipo -create 静态库1.a 静态库2.a -output 新静态库的名称.a
+
+真机上要用真机的.a
+模拟器上要用模拟器的.a
+
+目前的解决方法 ->
+
+ 把两个架构的.a合并成一个,在运行的时候,系统会根据运行平台,自行选择
+# 检测.a的类型
+$ lipo -info libCZTools.a
+
+ # Non-fat file: libCZTools.a is architecture: i386
+# Architectures in the fat file: libCZTools.a are: armv7 armv7s arm64
+
+# 合并.a
+$ lipo -create Debug-iphoneos/libCZTools.a Debug-iphonesimulator/libCZTools.a -output libCZTools.a
+$ lipo - cretae 真机.a 模拟器.a -output 合并的.a
+# 合并.a的好处，开发过程中既可以在真机上调试，也可以在模拟器上调试
+# 合并.a的坏处，如果静态库太大，合并打包后，会非常大，因此很多第三方的静态库的.a是区分版本的
+# 今后在使用.a时一定注意版本
+
+合并之后,就可以真机和模拟器上同时调试了!
+问题: 合并之后.a会变大!
+注意: 对于大的第三方框架,通常会提供两套.a,供程序员在不同的设备上调试!
+
+
+如果第三方框架提供了两个.a,
+
+- 可以在开发的时候,把.a合并
+- 发布的时候,在使用真机的.a替换即可!
+
+===================================
+- 调试Debug版本, 主要用于调试,会把所有调试相关信息,全部传递给调用方,不会bui代码进行任何的优化!
+
+- 发布Release版本,主要用于执行,在编译时,编译器会对程序进行优化,包括执行性能以及内存架构!
+
+通常第三方的静态库,都是提供的release版本.
+
+
+1>添加.a静态库的头文件 : 项目-->Bundle Phases -->copy Files-->+
+2>让模拟器的静态库既支持i386也支持x86_64 : Build Settings -->Build Active Architecture Only-->NO
+3>调试静态库 : 项目-->TARGETS-->+-->Framework&Library-->Cocoa Touch static Library
+4>Framework添加头文件 : 项目-->Build Phases-->Heads
+5>测试动态库 : 项目-->General-->Embedded binaries-->添加动态库
+6>制作Framework默认是动态库,改成静态库 : 项目-->Build Settings-->Mach-O Type -->static Library</p>
+</body>
+</html>
